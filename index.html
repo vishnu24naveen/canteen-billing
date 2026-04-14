@@ -174,22 +174,28 @@ function generateBill() {
   let total = 0;
 
   let bill = `
-    <html>
-    <head>
-    <style>
-      body { font-family: monospace; padding:10px; }
-      .row { display:flex; justify-content:space-between; }
-    </style>
-    </head>
-    <body>
+    <div id="bill" style="
+      width:100%;
+      max-width:320px;
+      margin:auto;
+      font-family: monospace;
+      padding:10px;
+    ">
 
-    <h3 style="text-align:center">CANTEEN</h3>
-    <div>${new Date().toLocaleString()}</div>
-    <hr>
+      <div style="text-align:center; font-weight:bold;">
+        CANTEEN
+      </div>
 
-    Name: ${name}<br>
-    Seat: ${seat}
-    <hr>
+      <div style="font-size:12px; text-align:center;">
+        ${new Date().toLocaleString()}
+      </div>
+
+      <hr>
+
+      <div>Name: ${name}</div>
+      <div>Seat: ${seat}</div>
+
+      <hr>
   `;
 
   products.forEach((p, i) => {
@@ -202,25 +208,42 @@ function generateBill() {
       total += t;
 
       bill += `
-        <div class="row">
+        <div style="display:flex; justify-content:space-between;">
           <span>${p.name} x${qty}</span>
           <span>₹${t}</span>
         </div>
-        ${note ? `<div style="font-size:12px">• ${note}</div>` : ""}
+
+        ${note ? `
+          <div style="font-size:12px; margin-left:10px;">
+            • ${note}
+          </div>
+        ` : ""}
       `;
     }
   });
 
   bill += `
-    <hr>
-    <div class="row"><b>Total</b><b>₹${total}</b></div>
+      <hr>
 
-    </body>
-    </html>
+      <div style="display:flex; justify-content:space-between; font-weight:bold;">
+        <span>Total</span>
+        <span>₹${total}</span>
+      </div>
+
+      <div style="text-align:center; margin-top:10px;">
+        Thank You! Visit Again
+      </div>
+
+    </div>
   `;
 
-  let win = window.open("", "_blank");
-  win.document.write(bill);
+  // ✅ Replace entire screen with bill
+  document.body.innerHTML = bill;
+
+  // ✅ Auto trigger print/share
+  setTimeout(() => {
+    window.print();
+  }, 300);
 }
 load();
 </script>
