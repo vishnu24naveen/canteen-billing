@@ -6,55 +6,56 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="manifest" href="manifest.json">
-
-<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-
 <style>
 body {
-  font-family: monospace;
-  margin: 0;
-  padding: 10px;
+  font-family: monospace;
+  margin: 0;
+  padding: 10px;
 }
 
 .header { text-align:center; }
 
 .info input {
-  width: 100%;
-  margin: 5px 0;
-  padding: 8px;
+  width: 100%;
+  margin: 5px 0;
+  padding: 8px;
 }
 
-table {
-  width: 100%;
-  font-size: 13px;
-  border-collapse: collapse;
+.item {
+  border-bottom: 1px dashed black;
+  padding: 5px 0;
 }
 
-th, td {
-  border-bottom: 1px dashed black;
-  padding: 4px;
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.qty-btn {
-  padding: 4px 8px;
+.qty {
+  display: flex;
+  align-items: center;
+}
+
+.qty button {
+  padding: 4px 8px;
+}
+
+.notes {
+  width: 100%;
+  margin-top: 4px;
 }
 
 .total {
-  text-align: right;
-  font-weight: bold;
-  margin-top: 10px;
+  text-align: right;
+  font-weight: bold;
+  margin-top: 10px;
 }
 
 button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-}
-
-@media print {
-  body { width: 80mm; }
-  button { display:none; }
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
 }
 </style>
 </head>
@@ -62,221 +63,165 @@ button {
 <body>
 
 <div class="header">
-  <h2>CANTEEN</h2>
-  <div id="dateTime"></div>
-  <hr>
+  <h2>CANTEEN</h2>
+  <div id="dateTime"></div>
+  <hr>
 </div>
 
 <div class="info">
-  <input type="text" id="customerName" placeholder="Customer Name">
-  <input type="text" id="seatNumber" placeholder="Seat Number">
+  <input type="text" id="customerName" placeholder="Customer Name">
+  <input type="text" id="seatNumber" placeholder="Seat Number">
 </div>
 
 <hr>
 
-<table>
-<thead>
-<tr>
-<th>Item</th>
-<th>Qty</th>
-<th>₹</th>
-<th>Total</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody id="tableBody"></tbody>
-</table>
+<div id="list"></div>
 
 <div class="total" id="total">Total: ₹0</div>
 
-<button onclick="downloadImage()">Generate Bill Image</button>
+<button onclick="generateBill()">Generate Bill</button>
 
 <script>
 let products = [
-  { name: "Beverages 30", price: 30 },
-  { name: "Beverages 50", price: 50 },
-  { name: "Beverages 70", price: 70 },
-  { name: "Snacks 30", price: 30 },
-  { name: "Snacks 40", price: 40 },
-  { name: "Snacks 50", price: 50 },
-  { name: "Snacks 80", price: 80 },
-  { name: "Puffs", price: 30 },
-  { name: "Ice Cream", price: 60 },
-  { name: "Waffers", price: 60 },
-  { name: "Tea / Coffee", price: 30 },
-  { name: "Sweet Corn", price: 40 },
-  { name: "French Fries", price: 60 },
-  { name: "Cutlet", price: 60 },
-  { name: "Popcorn", price: 70 },
-  { name: "Chicken Nuggets", price: 100 },
-  { name: "Smiley Fries", price: 60 },
-  { name: "Chicken Pops", price: 100 },
-  { name: "Veg Spring Roll", price: 100 },
-  { name: "Chicken Spring Roll", price: 100 },
-  { name: "Veg Fried Momos", price: 100 },
-  { name: "Chicken Fried Momos", price: 100 }
+  { name: "Beverages 30", price: 30 },
+  { name: "Beverages 50", price: 50 },
+  { name: "Beverages 70", price: 70 },
+  { name: "Snacks 30", price: 30 },
+  { name: "Snacks 40", price: 40 },
+  { name: "Snacks 50", price: 50 },
+  { name: "Snacks 80", price: 80 },
+  { name: "Puffs", price: 30 },
+  { name: "Ice Cream", price: 60 },
+  { name: "Waffers", price: 60 },
+  { name: "Tea / Coffee", price: 30 },
+  { name: "Sweet Corn", price: 40 },
+  { name: "French Fries", price: 60 },
+  { name: "Cutlet", price: 60 },
+  { name: "Popcorn", price: 70 },
+  { name: "Chicken Nuggets", price: 100 },
+  { name: "Smiley Fries", price: 60 },
+  { name: "Chicken Pops", price: 100 },
+  { name: "Veg Spring Roll", price: 100 },
+  { name: "Chicken Spring Roll", price: 100 },
+  { name: "Veg Fried Momos", price: 100 },
+  { name: "Chicken Fried Momos", price: 100 }
 ];
 
 let quantities = [];
 
 function load() {
-  let table = document.getElementById("tableBody");
+  let container = document.getElementById("list");
 
-  products.forEach((p, i) => {
-    let row = table.insertRow();
+  products.forEach((p, i) => {
+    let div = document.createElement("div");
+    div.className = "item";
 
-    row.insertCell(0).innerText = p.name;
+    div.innerHTML = `
+      <div class="row">
+        <span>${p.name}</span>
 
-    row.insertCell(1).innerHTML = `
-      <button class="qty-btn" onclick="dec(${i})">-</button>
-      <span id="q${i}">0</span>
-      <button class="qty-btn" onclick="inc(${i})">+</button>
-    `;
+        <div class="qty">
+          <button onclick="dec(${i})">-</button>
+          <span id="q${i}" style="margin:0 5px">0</span>
+          <button onclick="inc(${i})">+</button>
+        </div>
 
-    row.insertCell(2).innerText = p.price;
-    row.insertCell(3).innerText = "0";
+        <span>₹${p.price}</span>
+        <span id="t${i}">0</span>
+      </div>
 
-    row.insertCell(4).innerHTML = `<input type="text">`;
-  });
+      <input class="notes" type="text" id="n${i}" placeholder="Notes (optional)">
+    `;
 
-  document.getElementById("dateTime").innerText =
-    new Date().toLocaleString();
+    container.appendChild(div);
+  });
+
+  document.getElementById("dateTime").innerText =
+    new Date().toLocaleString();
 }
 
 function inc(i) {
-  quantities[i] = (quantities[i] || 0) + 1;
-  document.getElementById("q" + i).innerText = quantities[i];
-  calc();
+  quantities[i] = (quantities[i] || 0) + 1;
+  document.getElementById("q" + i).innerText = quantities[i];
+  calc();
 }
 
 function dec(i) {
-  if (!quantities[i]) return;
-  quantities[i]--;
-  document.getElementById("q" + i).innerText = quantities[i];
-  calc();
+  if (!quantities[i]) return;
+  quantities[i]--;
+  document.getElementById("q" + i).innerText = quantities[i];
+  calc();
 }
 
 function calc() {
-  let table = document.getElementById("tableBody");
-  let total = 0;
+  let total = 0;
 
-  for (let i = 0; i < table.rows.length; i++) {
-    let qty = quantities[i] || 0;
-    let price = table.rows[i].cells[2].innerText;
+  products.forEach((p, i) => {
+    let qty = quantities[i] || 0;
+    let t = qty * p.price;
 
-    let t = qty * price;
-    table.rows[i].cells[3].innerText = t;
-    total += t;
-  }
+    document.getElementById("t" + i).innerText = t;
+    total += t;
+  });
 
-  document.getElementById("total").innerText = "Total: ₹" + total;
+  document.getElementById("total").innerText = "Total: ₹" + total;
 }
 
-function getItems() {
-  let table = document.getElementById("tableBody");
-  let arr = [];
+function generateBill() {
+  let name = document.getElementById("customerName").value || "-";
+  let seat = document.getElementById("seatNumber").value || "-";
 
-  for (let i = 0; i < table.rows.length; i++) {
-    let qty = quantities[i] || 0;
+  let total = 0;
 
-    if (qty > 0) {
-      let note = table.rows[i].cells[4].children[0].value;
+  let bill = `
+    <html>
+    <head>
+    <style>
+      body { font-family: monospace; padding:10px; }
+      .row { display:flex; justify-content:space-between; }
+    </style>
+    </head>
+    <body>
 
-      arr.push({
-        name: products[i].name,
-        qty: qty,
-        price: products[i].price,
-        total: qty * products[i].price,
-        notes: note
-      });
-    }
-  }
+    <h3 style="text-align:center">CANTEEN</h3>
+    <div>${new Date().toLocaleString()}</div>
+    <hr>
 
-  return arr;
+    Name: ${name}<br>
+    Seat: ${seat}
+    <hr>
+  `;
+
+  products.forEach((p, i) => {
+    let qty = quantities[i] || 0;
+
+    if (qty > 0) {
+      let t = qty * p.price;
+      let note = document.getElementById("n" + i).value;
+
+      total += t;
+
+      bill += `
+        <div class="row">
+          <span>${p.name} x${qty}</span>
+          <span>₹${t}</span>
+        </div>
+        ${note ? `<div style="font-size:12px">• ${note}</div>` : ""}
+      `;
+    }
+  });
+
+  bill += `
+    <hr>
+    <div class="row"><b>Total</b><b>₹${total}</b></div>
+
+    </body>
+    </html>
+  `;
+
+  let win = window.open("", "_blank");
+  win.document.write(bill);
 }
-
-function downloadImage() {
-  let items = getItems();
-
-  if (items.length === 0) {
-    alert("No items selected");
-    return;
-  }
-
-  let name = document.getElementById("customerName").value || "-";
-  let seat = document.getElementById("seatNumber").value || "-";
-
-  let total = 0;
-
-  let html = `
-  <div style="width:260px;padding:10px;font-family:monospace;background:#fff">
-    <div style="text-align:center">
-      <b style="font-size:18px">CANTEEN</b><br>
-      <small>${new Date().toLocaleString()}</small>
-    </div>
-
-    <hr>
-
-    Name: ${name}<br>
-    Seat: ${seat}
-
-    <hr>
-  `;
-
-  items.forEach(i => {
-    total += i.total;
-
-    html += `
-      <div style="margin-bottom:6px">
-        <div style="display:flex;justify-content:space-between">
-          <span>${i.name} x${i.qty}</span>
-          <span>₹${i.total}</span>
-        </div>
-
-        ${i.notes ? `
-          <div style="font-size:11px;margin-left:5px">
-            • ${i.notes}
-          </div>
-        ` : ""}
-      </div>
-    `;
-  });
-
-  html += `
-    <hr>
-
-    <div style="display:flex;justify-content:space-between;font-weight:bold">
-      <span>Total</span>
-      <span>₹${total}</span>
-    </div>
-
-    <div style="text-align:center;margin-top:10px;font-size:12px">
-      Thank You! Visit Again
-    </div>
-  </div>
-  `;
-
-  let temp = document.createElement("div");
-  temp.innerHTML = html;
-  document.body.appendChild(temp);
-
-  html2canvas(temp.firstChild, {
-    scale: 2,
-    backgroundColor: "#ffffff"
-  }).then(canvas => {
-    let link = document.createElement("a");
-    link.download = "canteen_bill.png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-
-    document.body.removeChild(temp);
-  });
-}
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
-}
-
 load();
 </script>
 
