@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Canteen Billing</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+<h2>CANTEEN - Chennai</h2>
+<p id="dateTime"></p>
+
+<input type="text" placeholder="Customer Name"><br>
+<input type="text" placeholder="Seat Number"><br><br>
+
+<table border="1">
+<thead>
+<tr><th>Item</th><th>Qty</th><th>₹</th><th>Total</th><th>Notes</th></tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<h3 id="total">Total: ₹0</h3>
+
+<button onclick="window.print()">Print</button>
+
+<script>
+let products = [
+  { name: "Tea", price: 10 },
+  { name: "Coffee", price: 20 },
+  { name: "Vada", price: 15 }
+];
+
+let quantities = [];
+
+function load() {
+  let table = document.getElementById("tableBody");
+
+  products.forEach((p, i) => {
+    let row = table.insertRow();
+
+    row.insertCell(0).innerText = p.name;
+
+    row.insertCell(1).innerHTML = `
+      <button onclick="decrease(${i})">-</button>
+      <span id="qty${i}">0</span>
+      <button onclick="increase(${i})">+</button>
+    `;
+
+    row.insertCell(2).innerText = p.price;
+    row.insertCell(3).innerText = "0";
+
+    row.insertCell(4).innerHTML =
+      `<input type="text">`;
+  });
+
+  document.getElementById("dateTime").innerText =
+    new Date().toLocaleString();
+}
+
+function increase(i) {
+  quantities[i] = (quantities[i] || 0) + 1;
+  document.getElementById("qty" + i).innerText = quantities[i];
+  calc();
+}
+
+function decrease(i) {
+  if (!quantities[i]) return;
+  quantities[i]--;
+  document.getElementById("qty" + i).innerText = quantities[i];
+  calc();
+}
+
+function calc() {
+  let table = document.getElementById("tableBody");
+  let total = 0;
+
+  for (let i = 0; i < table.rows.length; i++) {
+    let qty = quantities[i] || 0;
+    let price = table.rows[i].cells[2].innerText;
+
+    let t = qty * price;
+    table.rows[i].cells[3].innerText = t;
+    total += t;
+  }
+
+  document.getElementById("total").innerText = "Total: ₹" + total;
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
+load();
+</script>
+</body>
+</html>
